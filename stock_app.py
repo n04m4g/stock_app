@@ -126,7 +126,7 @@ with st.form(key="trade_form", clear_on_submit=True):
 if st.session_state['rows']:
     df = pd.DataFrame(st.session_state['rows'])
     df['net'] = df['amount'] - df['fee']  # סכום נקי אחרי עמלה
-    df['total'] = df['net'].cumsum()  # סכום מצטבר
+    df['cumulative'] = df['net'].cumsum()  # סכום מצטבר - זה מה שהשתנה!
     
     # חישוב הסיכום הכולל
     final_result = df['net'].sum()  # כמה כסף עשיתי/הפסדתי בסך הכל
@@ -135,9 +135,8 @@ if st.session_state['rows']:
     # תצוגת הסיכום הראשי - פשוט ובהיר
     st.markdown("## 📊 הסיכום שלי")
     
-    # תיבה אחת גדולה עם התוצאה העיקרית
-    result_class = "big-number-positive" if final_result >= 0 else "big-number-negative"
-    profit_loss_text = "רווח" if final_result >= 0 else "הפסד"
+    # תיבה אחת גדולה עם התוצאה העיקר```    result_class = "big-number-positive" if final_result >= 0 else "big-number-negative"
+    profit_loss_text = "רווח" if final_```ult >= 0 else "הפסד"
     
     st.markdown(f"""
     <div class="summary-box">
@@ -147,37 +146,41 @@ if st.session_state['rows']:
     </div>
     """, unsafe_allow_html=True)
     
-    # גרף פשוט
-    st.markdown("## 📈 גרף התוצאות")
+    # גרף הסכום המצטבר - זה השינוי העיקרי!
+    st.markdown("## 📈 גרף התוצאות המצטברות")
     
     fig = go.Figure()
     
-    # קו שמראה את הרווח/הפסד של כל עסקה
-    colors = ['green' if x > 0 else 'red' for x in df['net']]
+    # קו שמראה את הסכום המצטבר לאורך הזמן
+    colors = ['green' if x >= 0 else 'red' for x in df['cumulative']]
     
     fig.add_trace(go.Scatter(
         x=list(range(1, len(df) + 1)),
-        y=df['net'],
+        y=df['cumulative'],
         mode='lines+markers',
-        name='רווח/הפסד לכל עסקה',
+        name='סכום מצטבר',
         line=dict(color='blue', width=3),
-        marker=dict(size=10, color=colors)
+        marker=dict(size=10, color=colors),
+        hovertemplate='<b>עסקה %{x}</b><br>' +
+                     'סכום מצטבר: ₪%{y:,.2f}<extra></extra>'
     ))
     
     # קו אפס
-    fig.add_hline(y=0, line_dash="dash", line_color="black", line_width=2)
+    fig.add_hline(y=0, line_dash="dash", line_color="black",ne_width=2)
     
     fig.update_layout(
-        title="רווח/הפסד בכל עסקה",
-        xaxis_title="מספר עסקה",
-        yaxis_title="סכום (₪)",
+        title="הסכום המצטבר שלך לאורך הזמן","xaxis_title="מספר עסקה",
+        yaxis_title="סכום מצטבר (₪)",
         height=400,
         showlegend=False
     )
     
     st.plotly_chart(fig, use_container_width=True)
     
-    # טבלה פשוטה
+    # הוספת הסבר לגרף
+    st.info("💡 הגרף מראה את הסכום המצטבר שלכם")
+    
+    # טבלה עם הסכום המצטבר
     st.markdown("## 📋 כל העסקאות שלי")
     
     display_df = df.copy()
@@ -185,7 +188,7 @@ if st.session_state['rows']:
     display_df = display_df.sort_values('stamp', ascending=False)
     
     st.dataframe(
-        display_df[['תאריך', 'amount', 'fee', 'net', 'note']],
+        display_df[['תאריך', 'amount', 'fee', 'net', 'cumulative', 'note']],
         use_container_width=True,
         hide_index=True,
         column_config={
@@ -193,6 +196,7 @@ if st.session_state['rows']:
             "amount": st.column_config.NumberColumn("סכום עסקה", format="₪%.2f"),
             "fee": st.column_config.NumberColumn("עמלה", format="₪%.2f"),
             "net": st.column_config.NumberColumn("רווח/הפסד נקי", format="₪%.2f"),
+            "cumulative": st.column_config.NumberColumn("סכום מצטבר", format="₪%.2f"),
             "note": "מה קרה"
         }
     )
@@ -224,10 +228,10 @@ else:
     st.markdown("""
     <div class="summary-box">
         <h2>👋 ברוכים הבאים!</h2>
-        <p>כאן תוכלו לעקוב אחר הרווחים וההפסדים שלכם בבורסה</p>
+        <p>כאן תוכלו לעקוב אחר הרווחים וההסדים המצטברים שלכם בבורסה<p>
         <p><strong>איך זה עובד?</strong></p>
         <p>🔹 עשיתם רווח? הזינו מספר חיובי (למשל: 1200)</p>
         <p>🔹 הפסדתם? הזינו מספר שלילי (למשל: -800)</p>
-        <p>🔹 האפליקציה תחשב עבורכם את הסיכום הכולל</p>
+        <p>🔹 הגרף יראה לכם איך הסכום משתנה לאורך זמן</p>
     </div>
     """, unsafe_allow_html=True)
