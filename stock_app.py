@@ -125,17 +125,16 @@ with st.form(key="trade_form", clear_on_submit=True):
 # תצוגת הנתונים אם יש עסקאות
 if st.session_state['rows']:
     df = pd.DataFrame(st.session_state['rows'])
-    df['net'] = df['amount'] - df['fee']  # סכום נקי אחרי עמלה
-    df['cumulative'] = df['net'].cumsum()  # סכום מצטבר - זה מה שהשתנה!
+    df['net'] = df['amount'] - df['fee']
+    df['cumulative'] = df['net'].cumsum()
     
     # חישוב הסיכום הכולל
-    final_result = df['net'].sum()  # כמה כסף עשיתי/הפסדתי בסך הכל
+    final_result = df['net'].sum()
     total_trades = len(df)
     
-    # תצוגת הסיכום הראשי - פשוט ובהיר
+    # תצוגת הסיכום הראשי
     st.markdown("## 📊 הסיכום שלי")
     
-    # תיבה אחת גדולה עם התוצאה העיקרית
     result_class = "big-number-positive" if final_result >= 0 else "big-number-negative"
     profit_loss_text = "רווח" if final_result >= 0 else "הפסד"
     
@@ -147,12 +146,11 @@ if st.session_state['rows']:
     </div>
     """, unsafe_allow_html=True)
     
-    # גרף הסכום המצטבר - זה השינוי העיקרי!
+    # גרף הסכום המצטבר
     st.markdown("## 📈 גרף התוצאות המצטברות")
     
     fig = go.Figure()
     
-    # קו שמראה את הסכום המצטבר לאורך הזמן
     colors = ['green' if x >= 0 else 'red' for x in df['cumulative']]
     
     fig.add_trace(go.Scatter(
@@ -166,7 +164,6 @@ if st.session_state['rows']:
                      'סכום מצטבר: ₪%{y:,.2f}<extra></extra>'
     ))
     
-    # קו אפס
     fig.add_hline(y=0, line_dash="dash", line_color="black", line_width=2)
     
     fig.update_layout(
@@ -179,7 +176,6 @@ if st.session_state['rows']:
     
     st.plotly_chart(fig, use_container_width=True)
     
-    # הוספת הסבר לגרף
     st.info("💡 הגרף מראה את הסכום המצטבר שלכם לאחר כל עסקה. נקודה ירוקה = רווח כולל, נקודה אדומה = הפסד כולל.")
     
     # טבלה עם הסכום המצטבר
@@ -203,16 +199,24 @@ if st.session_state['rows']:
         }
     )
     
-    # פעולות
+    # פעולות - כאן התיקון העיקרי!
     st.markdown("---")
     col1, col2 = st.columns(2)
     
     with col1:
-        csv = df.to_csv(index=False, encoding='utf-8-sig')
+        # הכנת DataFrame מתוקן לCSV
+        csv_df = df.copy()
+        # המרת התאריך לפורמט קריא
+        csv_df['date_time'] = csv_df['stamp'].dt.strftime('%d/%m/%Y %H:%M:%S')
+        # הסרת העמודה הישנה והוספת העמודה החדשה
+        csv_df_final = csv_df[['id', 'date_time', 'amount', 'fee', 'net', 'cumulative', 'note']]
+        csv_df_final.columns = ['מזהה', 'תאריך_ושעה', 'סכום_עסקה', 'עמלה', 'נטו', 'סכום_מצטבר', 'הערות']
+        
+        csv = csv_df_final.to_csv(index=False, encoding='utf-8-sig')
         st.download_button(
             label="📥 הורד את הנתונים",
             data=csv,
-            file_name=f"my_trades_{datetime.now().strftime('%Y%m%d')}.csv",
+            file_name=f"my_trades_{datetime.now().strftime('%Y%m%d_%H%M')}.csv",
             mime="text/csv",
             use_container_width=True
         )
