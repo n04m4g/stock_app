@@ -135,8 +135,9 @@ if st.session_state['rows']:
     # תצוגת הסיכום הראשי - פשוט ובהיר
     st.markdown("## 📊 הסיכום שלי")
     
-    # תיבה אחת גדולה עם התוצאה העיקר```    result_class = "big-number-positive" if final_result >= 0 else "big-number-negative"
-    profit_loss_text = "רווח" if final_```ult >= 0 else "הפסד"
+    # תיבה אחת גדולה עם התוצאה העיקרית
+    result_class = "big-number-positive" if final_result >= 0 else "big-number-negative"
+    profit_loss_text = "רווח" if final_result >= 0 else "הפסד"
     
     st.markdown(f"""
     <div class="summary-box">
@@ -166,10 +167,11 @@ if st.session_state['rows']:
     ))
     
     # קו אפס
-    fig.add_hline(y=0, line_dash="dash", line_color="black",ne_width=2)
+    fig.add_hline(y=0, line_dash="dash", line_color="black", line_width=2)
     
     fig.update_layout(
         title="הסכום המצטבר שלך לאורך הזמן",
+        xaxis_title="מספר עסקה",
         yaxis_title="סכום מצטבר (₪)",
         height=400,
         showlegend=False
@@ -178,7 +180,7 @@ if st.session_state['rows']:
     st.plotly_chart(fig, use_container_width=True)
     
     # הוספת הסבר לגרף
-    st.info("💡 הגרף מראה את הסכום המצטבר שלכם")
+    st.info("💡 הגרף מראה את הסכום המצטבר שלכם לאחר כל עסקה. נקודה ירוקה = רווח כולל, נקודה אדומה = הפסד כולל.")
     
     # טבלה עם הסכום המצטבר
     st.markdown("## 📋 כל העסקאות שלי")
@@ -228,10 +230,10 @@ else:
     st.markdown("""
     <div class="summary-box">
         <h2>👋 ברוכים הבאים!</h2>
-        <p>כאן תוכלו לעקוב אחר הרווחים וההסדים המצטברים שלכם בבורסה<p>
+        <p>כאן תוכלו לעקוב אחר הרווחים וההפסדים המצטברים שלכם בבורסה</p>
         <p><strong>איך זה עובד?</strong></p>
         <p>🔹 עשיתם רווח? הזינו מספר חיובי (למשל: 1200)</p>
         <p>🔹 הפסדתם? הזינו מספר שלילי (למשל: -800)</p>
-        <p>🔹 הגרף יראה לכם איך הסכום משתנה לאורך זמן</p>
+        <p>🔹 הגרף יראה לכם איך הסכום הכולל משתנה לאורך זמן</p>
     </div>
     """, unsafe_allow_html=True)
