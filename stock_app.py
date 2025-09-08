@@ -92,14 +92,14 @@ with st.form(key="trade_form", clear_on_submit=True):
         amount_input = st.text_input(
             "סכום העסקה", 
             placeholder="רווח: 1200, הפסד: -800",
-            help="רווח = מספר חיובי,```סד = מספר שלילי ע```ינוס"
+            help="רווח = מספר חיובי, הפסד = מספר שלילי עם מינוס"
         )
     
     with col2:
         fee_input = st.text_input("עמלה", value="13")
     
     with col3:
-        note_input = st.text_input("הערה", placeholder="למשל: קנית אפל, מכרת```גל...")
+        note_input = st.text_input("הערה", placeholder="למשל: קנית אפל, מכרת גוגל...")
     
     submitted = st.form_submit_button("💾 שמור עסקה", use_container_width=True)
     
@@ -115,7 +115,7 @@ with st.form(key="trade_form", clear_on_submit=True):
                 "stamp": datetime.now(),
                 "amount": amount,
                 "fee": fee,
-                "note": note_input or "לל```ערות"
+                "note": note_input or "ללא הערות"
             }
             st.session_state['rows'].append(new_entry)
             st.session_state['next_id'] += 1
@@ -166,10 +166,10 @@ if st.session_state['rows']:
     ))
     
     # קו אפס
-    fig.add_hline(y=0, line_dash="dash", line_color="black",```ne_width=2)
+    fig.add_hline(y=0, line_dash="dash", line_color="black",ne_width=2)
     
     fig.update_layout(
-        title="הסכום המצטבר שלך לאורך הזמן",```      xaxis_title="מספר עסקה",
+        title="הסכום המצטבר שלך לאורך הזמן","xaxis_title="מספר עסקה",
         yaxis_title="סכום מצטבר (₪)",
         height=400,
         showlegend=False
@@ -178,7 +178,7 @@ if st.session_state['rows']:
     st.plotly_chart(fig, use_container_width=True)
     
     # הוספת הסבר לגרף
-    st.info("💡 הגרף מראה את הסכום המצטבר שלכם לאח```ל עסקה. נקודה ירוקה```רווח כולל, נקודה א```ה = הפסד כול```)
+    st.info("💡 הגרף מראה את הסכום המצטבר שלכם")
     
     # טבלה עם הסכום המצטבר
     st.markdown("## 📋 כל העסקאות שלי")
@@ -228,9 +228,10 @@ else:
     st.markdown("""
     <div class="summary-box">
         <h2>👋 ברוכים הבאים!</h2>
-        <p>כאן תוכלו לעקוב אחר הרווחים ו```סדים המצטברים שלכם בבורס```p>
-        <p><strong>איך זה עובד?</strong></p>```      <p>🔹 עשיתם רווח? הזינו מספר חיובי (למשל: 1200)</p>
+        <p>כאן תוכלו לעקוב אחר הרווחים וההסדים המצטברים שלכם בבורסה<p>
+        <p><strong>איך זה עובד?</strong></p>
+        <p>🔹 עשיתם רווח? הזינו מספר חיובי (למשל: 1200)</p>
         <p>🔹 הפסדתם? הזינו מספר שלילי (למשל: -800)</p>
-        <p>🔹 הגרף יראה לכם איך הסכום ה```ל משתנה לאורך זמן</p>
+        <p>🔹 הגרף יראה לכם איך הסכום משתנה לאורך זמן</p>
     </div>
     """, unsafe_allow_html=True)
