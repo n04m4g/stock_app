@@ -2,7 +2,6 @@ import streamlit as st
 import pandas as pd
 import numpy as np
 from datetime import datetime
-import plotly.express as px
 import plotly.graph_objects as go
 
 # הגדרות עמוד
@@ -44,13 +43,6 @@ st.markdown("""
 
 # פונקציה לפענוח מספרים כולל ניקוי תווים
 def parse_num(raw):
-    """
-    פונקציה לפענוח מספרים התומכת בפורמטים שונים:
-    - מינוס יוניקוד (−) → מינוס רגיל (-)
-    - פסיקים כמפרידי אלפים
-    - נקודות עשרוניות
-    - מספרים שליליים
-    """
     if not raw or raw.strip() == "":
         return None
     
@@ -75,86 +67,71 @@ if 'rows' not in st.session_state:
 if 'next_id' not in st.session_state:
     st.session_state['next_id'] = 1
 
+# הוספת מצב הודעה
+if 'show_success' not in st.session_state:
+    st.session_state['show_success'] = False
+
 # כותרת ראשית
 st.markdown('<h1 class="main-header">📈 my stock market</h1>', unsafe_allow_html=True)
+
+# הצגת הודעת הצלחה
+if st.session_state['show_success']:
+    st.success("✅ העסקה התווספה בהצלחה!")
+    st.session_state['show_success'] = False
 
 # טופס הוספת עסקה
 st.markdown("## הוספת עסקה חדשה")
 
-col1, col2, col3, col4 = st.columns([3, 2, 3, 2])
-
-with col1:
-    amount_input = st.text_input("סכום עסקה", placeholder="למשל: 1,200 או -850", key="amount_field")
-
-with col2:
-    fee_input = st.text_input("עמלה", value="13", key="fee_field")
-
-with col3:
-    note_input = st.text_input("הערה", placeholder="תיאור העסקה...", key="note_field")
-
-with col4:
-    st.markdown("<br>", unsafe_allow_html=True)
-    add_btn = st.button("➕ הוסף עסקה", use_container_width=True)
-
-# כפתורי עזר מתמטיים
-st.markdown("### כפתורי עזר")
-col_btn1, col_btn2, col_btn3 = st.columns(3)
-
-with col_btn1:
-    minus_btn = st.button("➖ מינוס", use_container_width=True)
-
-with col_btn2:
-    plus_btn = st.button("➕ פלוס", use_container_width=True)
-
-with col_btn3:
-    flip_btn = st.button("± הפוך סימן", use_container_width=True)
-
-# טיפול בכפתורי עזר
-if minus_btn:
-    current_amount = st.session_state.get('amount_field', '')
-    st.session_state['amount_field'] = current_amount + '-'
-    st.rerun()
-
-if plus_btn:
-    current_amount = st.session_state.get('amount_field', '')
-    st.session_state['amount_field'] = current_amount + '+'
-    st.rerun()
-
-if flip_btn:
-    current_amount = st.session_state.get('amount_field', '')
-    if current_amount:
-        num = parse_num(current_amount)
-        if num is not None:
-            st.session_state['amount_field'] = str(-num)
-            st.rerun()
-
-# טיפול בהוספת עסקה
-if add_btn:
-    amount = parse_num(amount_input)
-    fee = parse_num(fee_input)
+# שימוש בפורמט טופס רגיל ללא בעיות session state
+with st.form(key="trade_form", clear_on_submit=True):
+    col1, col2, col3 = st.columns([3, 2, 3])
     
-    if fee is None:
-        fee = 13
+    with col1:
+        amount_input = st.text_input("סכום עסקה", placeholder="למשל: 1,200 או -850")
     
-    if amount is None:
-        st.error("❌ סכום עסקה לא תקין. יש להזין מספר חוקי.")
-    else:
-        new_entry = {
-            "id": st.session_state['next_id'],
-            "stamp": datetime.now(),
-            "amount": amount,
-            "fee": fee,
-            "note": note_input or "אין הערות"
-        }
-        st.session_state['rows'].append(new_entry)
-        st.session_state['next_id'] += 1
-        st.success("✅ העסקה התווספה בהצלחה!")
+    with col2:
+        fee_input = st.text_input("עמלה", value="13")
+    
+    with col3:
+        note_input = st.text_input("הערה", placeholder="תיאור העסקה...")
+    
+    # כפתורי עזר מתמטיים
+    st.markdown("### כפתורי עזר")
+    col_btn1, col_btn2, col_btn3 = st.columns(3)
+    
+    with col_btn1:
+        st.markdown("**➖ מינוס** - הוסיפו '-' לסכום")
+    
+    with col_btn2:
+        st.markdown("**➕ פלוס** - הוסיפו '+' לסכום")
+    
+    with col_btn3:
+        st.markdown("**±** - לסכומים שליליים הוסיפו '-' בתחילת המספר")
+    
+    # כפתור הוספה
+    submitted = st.form_submit_button("➕ הוסף עסקה", use_container_width=True)
+    
+    if submitted:
+        amount = parse_num(amount_input)
+        fee = parse_num(fee_input)
         
-        # ניקוי השדות
-        st.session_state['amount_field'] = ''
-        st.session_state['fee_field'] = '13'
-        st.session_state['note_field'] = ''
-        st.rerun()
+        if fee is None:
+            fee = 13
+        
+        if amount is None:
+            st.error("❌ סכום עסקה לא תקין. יש להזין מספר חוקי.")
+        else:
+            new_entry = {
+                "id": st.session_state['next_id'],
+                "stamp": datetime.now(),
+                "amount": amount,
+                "fee": fee,
+                "note": note_input or "אין הערות"
+            }
+            st.session_state['rows'].append(new_entry)
+            st.session_state['next_id'] += 1
+            st.session_state['show_success'] = True
+            st.rerun()
 
 # עיבוד הנתונים ותצוגה
 if st.session_state['rows']:
@@ -250,22 +227,21 @@ if st.session_state['rows']:
     # הכנת הטבלה לתצוגה
     display_df = df.copy()
     display_df['תאריך'] = display_df['stamp'].dt.strftime('%Y-%m-%d %H:%M')
-    display_df['סכום'] = display_df['amount'].apply(lambda x: f"₪{x:,.2f}")
-    display_df['עמלה'] = display_df['fee'].apply(lambda x: f"₪{x:.2f}")
-    display_df['נטו'] = display_df['net'].apply(lambda x: f"₪{x:,.2f}")
-    display_df['מצטבר'] = display_df['total'].apply(lambda x: f"₪{x:,.2f}")
+    display_df = display_df.sort_values('stamp', ascending=False)  # הכי חדש למעלה
     
     # בחירת עמודות לתצוגה
-    columns_to_show = ['תאריך', 'סכום', 'עמלה', 'נטו', 'מצטבר', 'note']
-    column_names = ['תאריך', 'סכום', 'עמלה', 'נטו', 'מצטבר', 'הערות']
-    
-    final_display_df = display_df[columns_to_show].copy()
-    final_display_df.columns = column_names
-    
     st.dataframe(
-        final_display_df,
+        display_df[['תאריך', 'amount', 'fee', 'net', 'total', 'note']],
         use_container_width=True,
-        hide_index=True
+        hide_index=True,
+        column_config={
+            "תאריך": "תאריך",
+            "amount": st.column_config.NumberColumn("סכום", format="₪%.2f"),
+            "fee": st.column_config.NumberColumn("עמלה", format="₪%.2f"),
+            "net": st.column_config.NumberColumn("נטו", format="₪%.2f"),
+            "total": st.column_config.NumberColumn("מצטבר", format="₪%.2f"),
+            "note": "הערות"
+        }
     )
     
     # כפתורי פעולות נוספות
@@ -274,26 +250,24 @@ if st.session_state['rows']:
     action_col1, action_col2, action_col3 = st.columns(3)
     
     with action_col1:
-        if st.button("📊 יצא ל-CSV"):
-            csv = df.to_csv(index=False, encoding='utf-8-sig')
-            st.download_button(
-                label="הורד קובץ CSV",
-                data=csv,
-                file_name=f"stock_trades_{datetime.now().strftime('%Y%m%d')}.csv",
-                mime="text/csv"
-            )
+        csv = df.to_csv(index=False, encoding='utf-8-sig')
+        st.download_button(
+            label="📊 הורד קובץ CSV",
+            data=csv,
+            file_name=f"stock_trades_{datetime.now().strftime('%Y%m%d')}.csv",
+            mime="text/csv"
+        )
     
     with action_col2:
-        if st.button("🗑️ נקה הכל", type="secondary"):
-            confirm = st.checkbox("אני בטוח שאני רוצה למחוק את כל הנתונים")
-            if confirm and st.button("אישור מחיקה"):
+        success_rate = (wins/(wins+losses)*100) if (wins+losses) > 0 else 0
+        st.metric("שיעור הצלחה", f"{success_rate:.1f}%")
+    
+    with action_col3:
+        if st.button("🗑️ נקה הכל"):
+            if st.checkbox("✅ אני בטוח שאני רוצה למחוק הכל"):
                 st.session_state['rows'] = []
                 st.session_state['next_id'] = 1
                 st.rerun()
-    
-    with action_col3:
-        success_rate = (wins/(wins+losses)*100) if (wins+losses) > 0 else 0
-        st.metric("שיעור הצלחה", f"{success_rate:.1f}%")
 
 else:
     st.info("👋 ברוכים הבאים! הוסיפו את העסקה הראשונה שלכם למעלה כדי להתחיל.")
@@ -304,5 +278,7 @@ else:
     3. **הוסיפו הערה** (אופציונלי)
     4. **לחצו על הוסף עסקה**
     
-    האפליקציה תציג אוטומטית את מדדי הביצועים, גרף המגמות וטבלת ההיסטוריה.
+    **דוגמאות לסכומים:**
+    - `1200` או `1,200.50` - רווח של 1200 שקל
+    - `-850` או `-850.75` - הפסד של 850 שקל
     """)
