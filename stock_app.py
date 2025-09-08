@@ -169,7 +169,7 @@ if st.session_state['rows']:
     fig.add_hline(y=0, line_dash="dash", line_color="black",ne_width=2)
     
     fig.update_layout(
-        title="הסכום המצטבר שלך לאורך הזמן","xaxis_title="מספר עסקה",
+        title="הסכום המצטבר שלך לאורך הזמן",
         yaxis_title="סכום מצטבר (₪)",
         height=400,
         showlegend=False
