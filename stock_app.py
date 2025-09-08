@@ -11,7 +11,7 @@ st.set_page_config(
     layout="wide"
 )
 
-# CSS מותאם לעיצוב
+# CSS פשוט יותר
 st.markdown("""
 <style>
 .main-header {
@@ -23,37 +23,43 @@ st.markdown("""
     background: linear-gradient(90deg, #f0f0f0, #ffffff);
     border-radius: 10px;
 }
-.kpi-card {
+.summary-box {
     background: #f8f9fa;
-    padding: 1rem;
+    padding: 2rem;
     border-radius: 10px;
-    border-left: 4px solid #1f77b4;
-    margin: 0.5rem 0;
+    border: 2px solid #e9ecef;
+    text-align: center;
+    margin: 1rem 0;
 }
-.positive {
+.big-number-positive {
+    font-size: 3rem;
+    font-weight: bold;
     color: #28a745;
-    font-weight: bold;
+    margin: 1rem 0;
 }
-.negative {
-    color: #dc3545;
+.big-number-negative {
+    font-size: 3rem;
     font-weight: bold;
+    color: #dc3545;
+    margin: 1rem 0;
+}
+.trades-count {
+    font-size: 1.2rem;
+    color: #6c757d;
+    margin: 0.5rem 0;
 }
 </style>
 """, unsafe_allow_html=True)
 
-# פונקציה לפענוח מספרים כולל ניקוי תווים
+# פונקציה לפענוח מספרים
 def parse_num(raw):
     if not raw or raw.strip() == "":
         return None
     
-    # החלפת מינוס יוניקוד במינוס רגיל
     raw = raw.replace('\u2212', '-')
-    
-    # השארת תווים רלוונטיים בלבד
     filtered = ''.join(ch for ch in raw if ch.isdigit() or ch in ['.', ',', '-', '+'])
     
     try:
-        # הסרת פסיקים והמרה לנקודות עשרוניות
         cleaned = filtered.replace(',', '')
         value = float(cleaned)
         return value
@@ -63,11 +69,8 @@ def parse_num(raw):
 # אתחול נתוני הסשן
 if 'rows' not in st.session_state:
     st.session_state['rows'] = []
-
 if 'next_id' not in st.session_state:
     st.session_state['next_id'] = 1
-
-# הוספת מצב הודעה
 if 'show_success' not in st.session_state:
     st.session_state['show_success'] = False
 
@@ -76,209 +79,155 @@ st.markdown('<h1 class="main-header">📈 my stock market</h1>', unsafe_allow_ht
 
 # הצגת הודעת הצלחה
 if st.session_state['show_success']:
-    st.success("✅ העסקה התווספה בהצלחה!")
+    st.success("✅ העסקה התווספה!")
     st.session_state['show_success'] = False
 
-# טופס הוספת עסקה
-st.markdown("## הוספת עסקה חדשה")
+# טופס הוספת עסקה - רק הבסיס
+st.markdown("## ➕ הוספת עסקה")
 
-# שימוש בפורמט טופס רגיל ללא בעיות session state
 with st.form(key="trade_form", clear_on_submit=True):
-    col1, col2, col3 = st.columns([3, 2, 3])
+    col1, col2, col3 = st.columns([3, 2, 4])
     
     with col1:
-        amount_input = st.text_input("סכום עסקה", placeholder="למשל: 1,200 או -850")
+        amount_input = st.text_input(
+            "סכום העסקה", 
+            placeholder="רווח: 1200, הפסד: -800",
+            help="רווח = מספר חיובי, הפסד = מספר שלילי עם מינוס"
+        )
     
     with col2:
         fee_input = st.text_input("עמלה", value="13")
     
     with col3:
-        note_input = st.text_input("הערה", placeholder="תיאור העסקה...")
+        note_input = st.text_input("הערה", placeholder="למשל: קנית אפל, מכרת גוגל...")
     
-    # כפתורי עזר מתמטיים
-    st.markdown("### כפתורי עזר")
-    col_btn1, col_btn2, col_btn3 = st.columns(3)
-    
-    with col_btn1:
-        st.markdown("**➖ מינוס** - הוסיפו '-' לסכום")
-    
-    with col_btn2:
-        st.markdown("**➕ פלוס** - הוסיפו '+' לסכום")
-    
-    with col_btn3:
-        st.markdown("**±** - לסכומים שליליים הוסיפו '-' בתחילת המספר")
-    
-    # כפתור הוספה
-    submitted = st.form_submit_button("➕ הוסף עסקה", use_container_width=True)
+    submitted = st.form_submit_button("💾 שמור עסקה", use_container_width=True)
     
     if submitted:
         amount = parse_num(amount_input)
-        fee = parse_num(fee_input)
-        
-        if fee is None:
-            fee = 13
+        fee = parse_num(fee_input) or 13
         
         if amount is None:
-            st.error("❌ סכום עסקה לא תקין. יש להזין מספר חוקי.")
+            st.error("❌ אנא הזינו סכום תקין")
         else:
             new_entry = {
                 "id": st.session_state['next_id'],
                 "stamp": datetime.now(),
                 "amount": amount,
                 "fee": fee,
-                "note": note_input or "אין הערות"
+                "note": note_input or "ללא הערות"
             }
             st.session_state['rows'].append(new_entry)
             st.session_state['next_id'] += 1
             st.session_state['show_success'] = True
             st.rerun()
 
-# עיבוד הנתונים ותצוגה
+# תצוגת הנתונים אם יש עסקאות
 if st.session_state['rows']:
     df = pd.DataFrame(st.session_state['rows'])
-    df['net'] = df['amount'] - df['fee']
-    df['total'] = df['net'].cumsum()
+    df['net'] = df['amount'] - df['fee']  # סכום נקי אחרי עמלה
+    df['total'] = df['net'].cumsum()  # סכום מצטבר
     
-    # חישובי KPI
-    total_net = df['net'].sum()
+    # חישוב הסיכום הכולל
+    final_result = df['net'].sum()  # כמה כסף עשיתי/הפסדתי בסך הכל
     total_trades = len(df)
-    total_fees = df['fee'].sum()
     
-    wins = (df['net'] > 0).sum()
-    losses = (df['net'] < 0).sum()
-    wins_amount = df.loc[df['net'] > 0, 'net'].sum() if wins > 0 else 0
-    losses_amount = df.loc[df['net'] < 0, 'net'].sum() if losses > 0 else 0
+    # תצוגת הסיכום הראשי - פשוט ובהיר
+    st.markdown("## 📊 הסיכום שלי")
     
-    best_trade = df['net'].max()
-    worst_trade = df['net'].min()
+    # תיבה אחת גדולה עם התוצאה העיקרית
+    result_class = "big-number-positive" if final_result >= 0 else "big-number-negative"
+    profit_loss_text = "רווח" if final_result >= 0 else "הפסד"
     
-    # הצגת כרטיסי KPI
-    st.markdown("## 📊 מדדי ביצועים")
+    st.markdown(f"""
+    <div class="summary-box">
+        <h2>💰 סה"כ {profit_loss_text}</h2>
+        <div class="{result_class}">₪{abs(final_result):,.2f}</div>
+        <div class="trades-count">מתוך {total_trades} עסקאות</div>
+    </div>
+    """, unsafe_allow_html=True)
     
-    kpi_col1, kpi_col2, kpi_col3, kpi_col4 = st.columns(4)
-    
-    with kpi_col1:
-        color_class = "positive" if total_net >= 0 else "negative"
-        st.markdown(f"""
-        <div class="kpi-card">
-            <h4>סה"כ נטו</h4>
-            <h2 class="{color_class}">₪{total_net:,.2f}</h2>
-            <p>{total_trades} עסקאות</p>
-        </div>
-        """, unsafe_allow_html=True)
-    
-    with kpi_col2:
-        st.markdown(f"""
-        <div class="kpi-card">
-            <h4>ניצחונות / הפסדים</h4>
-            <h2>{wins} / {losses}</h2>
-            <p class="positive">+₪{wins_amount:,.2f}</p>
-            <p class="negative">-₪{abs(losses_amount):,.2f}</p>
-        </div>
-        """, unsafe_allow_html=True)
-    
-    with kpi_col3:
-        st.markdown(f"""
-        <div class="kpi-card">
-            <h4>עסקה טובה / גרועה</h4>
-            <p class="positive">₪{best_trade:,.2f}</p>
-            <p class="negative">₪{worst_trade:,.2f}</p>
-        </div>
-        """, unsafe_allow_html=True)
-    
-    with kpi_col4:
-        st.markdown(f"""
-        <div class="kpi-card">
-            <h4>סך עמלות</h4>
-            <h2 class="negative">₪{total_fees:,.2f}</h2>
-        </div>
-        """, unsafe_allow_html=True)
-    
-    # גרף מגמות
-    st.markdown("## 📈 גרף מגמות עסקאות")
+    # גרף פשוט
+    st.markdown("## 📈 גרף התוצאות")
     
     fig = go.Figure()
     
-    # קו העסקאות
+    # קו שמראה את הרווח/הפסד של כל עסקה
+    colors = ['green' if x > 0 else 'red' for x in df['net']]
+    
     fig.add_trace(go.Scatter(
+        x=list(range(1, len(df) + 1)),
         y=df['net'],
         mode='lines+markers',
-        name='סכום נטו',
-        line=dict(color='#1f77b4', width=2),
-        marker=dict(size=6)
+        name='רווח/הפסד לכל עסקה',
+        line=dict(color='blue', width=3),
+        marker=dict(size=10, color=colors)
     ))
     
     # קו אפס
-    fig.add_hline(y=0, line_dash="dash", line_color="gray", annotation_text="קו אפס")
+    fig.add_hline(y=0, line_dash="dash", line_color="black", line_width=2)
     
     fig.update_layout(
-        title="גרף סכומי עסקאות לאורך זמן",
+        title="רווח/הפסד בכל עסקה",
         xaxis_title="מספר עסקה",
-        yaxis_title="סכום נטו (₪)",
-        hovermode='x unified',
-        height=400
+        yaxis_title="סכום (₪)",
+        height=400,
+        showlegend=False
     )
     
     st.plotly_chart(fig, use_container_width=True)
     
-    # טבלת היסטוריה
-    st.markdown("## 📋 היסטוריית עסקאות")
+    # טבלה פשוטה
+    st.markdown("## 📋 כל העסקאות שלי")
     
-    # הכנת הטבלה לתצוגה
     display_df = df.copy()
-    display_df['תאריך'] = display_df['stamp'].dt.strftime('%Y-%m-%d %H:%M')
-    display_df = display_df.sort_values('stamp', ascending=False)  # הכי חדש למעלה
+    display_df['תאריך'] = display_df['stamp'].dt.strftime('%d/%m/%Y %H:%M')
+    display_df = display_df.sort_values('stamp', ascending=False)
     
-    # בחירת עמודות לתצוגה
     st.dataframe(
-        display_df[['תאריך', 'amount', 'fee', 'net', 'total', 'note']],
+        display_df[['תאריך', 'amount', 'fee', 'net', 'note']],
         use_container_width=True,
         hide_index=True,
         column_config={
-            "תאריך": "תאריך",
-            "amount": st.column_config.NumberColumn("סכום", format="₪%.2f"),
+            "תאריך": "מתי",
+            "amount": st.column_config.NumberColumn("סכום עסקה", format="₪%.2f"),
             "fee": st.column_config.NumberColumn("עמלה", format="₪%.2f"),
-            "net": st.column_config.NumberColumn("נטו", format="₪%.2f"),
-            "total": st.column_config.NumberColumn("מצטבר", format="₪%.2f"),
-            "note": "הערות"
+            "net": st.column_config.NumberColumn("רווח/הפסד נקי", format="₪%.2f"),
+            "note": "מה קרה"
         }
     )
     
-    # כפתורי פעולות נוספות
-    st.markdown("## ⚙️ פעולות נוספות")
+    # פעולות
+    st.markdown("---")
+    col1, col2 = st.columns(2)
     
-    action_col1, action_col2, action_col3 = st.columns(3)
-    
-    with action_col1:
+    with col1:
         csv = df.to_csv(index=False, encoding='utf-8-sig')
         st.download_button(
-            label="📊 הורד קובץ CSV",
+            label="📥 הורד את הנתונים",
             data=csv,
-            file_name=f"stock_trades_{datetime.now().strftime('%Y%m%d')}.csv",
-            mime="text/csv"
+            file_name=f"my_trades_{datetime.now().strftime('%Y%m%d')}.csv",
+            mime="text/csv",
+            use_container_width=True
         )
     
-    with action_col2:
-        success_rate = (wins/(wins+losses)*100) if (wins+losses) > 0 else 0
-        st.metric("שיעור הצלחה", f"{success_rate:.1f}%")
-    
-    with action_col3:
-        if st.button("🗑️ נקה הכל"):
-            if st.checkbox("✅ אני בטוח שאני רוצה למחוק הכל"):
+    with col2:
+        if st.button("🗑️ מחק הכל", use_container_width=True):
+            st.warning("⚠️ פעולה זו תמחק את כל הנתונים!")
+            if st.button("✅ כן, מחק הכל"):
                 st.session_state['rows'] = []
                 st.session_state['next_id'] = 1
                 st.rerun()
 
 else:
-    st.info("👋 ברוכים הבאים! הוסיפו את העסקה הראשונה שלכם למעלה כדי להתחיל.")
+    # מסך פתיחה
     st.markdown("""
-    ### איך להשתמש באפליקציה:
-    1. **הזינו סכום עסקה** - חיובי לרווח, שלילי להפסד
-    2. **הזינו עמלה** - ברירת מחדל 13 ש"ח  
-    3. **הוסיפו הערה** (אופציונלי)
-    4. **לחצו על הוסף עסקה**
-    
-    **דוגמאות לסכומים:**
-    - `1200` או `1,200.50` - רווח של 1200 שקל
-    - `-850` או `-850.75` - הפסד של 850 שקל
-    """)
+    <div class="summary-box">
+        <h2>👋 ברוכים הבאים!</h2>
+        <p>כאן תוכלו לעקוב אחר הרווחים וההפסדים שלכם בבורסה</p>
+        <p><strong>איך זה עובד?</strong></p>
+        <p>🔹 עשיתם רווח? הזינו מספר חיובי (למשל: 1200)</p>
+        <p>🔹 הפסדתם? הזינו מספר שלילי (למשל: -800)</p>
+        <p>🔹 האפליקציה תחשב עבורכם את הסיכום הכולל</p>
+    </div>
+    """, unsafe_allow_html=True)
