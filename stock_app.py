@@ -115,6 +115,88 @@ with st.form(key="trade_form", clear_on_submit=True):
                 "stamp": datetime.now(),
                 "amount": amount,
                 "fee": fee,
+                "note": note_input or "לל
+    color: #28a745;
+    margin: 1rem 0;
+}
+.big-number-negative {
+    font-size: 3rem;
+    font-weight: bold;
+    color: #dc3545;
+    margin: 1rem 0;
+}
+.trades-count {
+    font-size: 1.2rem;
+    color: #6c757d;
+    margin: 0.5rem 0;
+}
+</style>
+""", unsafe_allow_html=True)
+
+# פונקציה לפענוח מספרים
+def parse_num(raw):
+    if not raw or raw.strip() == "":
+        return None
+    
+    raw = raw.replace('\u2212', '-')
+    filtered = ''.join(ch for ch in raw if ch.isdigit() or ch in ['.', ',', '-', '+'])
+    
+    try:
+        cleaned = filtered.replace(',', '')
+        value = float(cleaned)
+        return value
+    except:
+        return None
+
+# אתחול נתוני הסשן
+if 'rows' not in st.session_state:
+    st.session_state['rows'] = []
+if 'next_id' not in st.session_state:
+    st.session_state['next_id'] = 1
+if 'show_success' not in st.session_state:
+    st.session_state['show_success'] = False
+
+# כותרת ראשית
+st.markdown('<h1 class="main-header">📈 my stock market</h1>', unsafe_allow_html=True)
+
+# הצגת הודעת הצלחה
+if st.session_state['show_success']:
+    st.success("✅ העסקה התווספה!")
+    st.session_state['show_success'] = False
+
+# טופס הוספת עסקה - רק הבסיס
+st.markdown("## ➕ הוספת עסקה")
+
+with st.form(key="trade_form", clear_on_submit=True):
+    col1, col2, col3 = st.columns([3, 2, 4])
+    
+    with col1:
+        amount_input = st.text_input(
+            "סכום העסקה", 
+            placeholder="רווח: 1200, הפסד: -800",
+            help="רווח = מספר חיובי, הפסד = מספר שלילי עם מינוס"
+        )
+    
+    with col2:
+        fee_input = st.text_input("עמלה", value="13")
+    
+    with col3:
+        note_input = st.text_input("הערה", placeholder="למשל: קנית אפל, מכרת גוגל...")
+    
+    submitted = st.form_submit_button("💾 שמור עסקה", use_container_width=True)
+    
+    if submitted:
+        amount = parse_num(amount_input)
+        fee = parse_num(fee_input) or 13
+        
+        if amount is None:
+            st.error("❌ אנא הזינו סכום תקין")
+        else:
+            new_entry = {
+                "id": st.session_state['next_id'],
+                "stamp": datetime.now(),
+                "amount": amount,
+                "fee": fee,
                 "note": note_input or "ללא הערות"
             }
             st.session_state['rows'].append(new_entry)
